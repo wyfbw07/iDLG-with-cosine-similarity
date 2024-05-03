@@ -171,7 +171,7 @@ def main():
         net = net.to(device)
         idx_shuffle = np.random.permutation(len(dst))
 
-        for method in [ 'iDLG']:
+        for method in ['DLG', 'iDLG', 'iDLG_cos']:
             print('%s, Try to generate %d images' % (method, num_dummy))
 
             criterion = nn.CrossEntropyLoss().to(device)
@@ -206,7 +206,7 @@ def main():
 
             if method == 'DLG':
                 optimizer = torch.optim.LBFGS([dummy_data, dummy_label], lr=lr)
-            elif method == 'iDLG':
+            elif method == 'iDLG_cos' or method == 'iDLG':
                 optimizer = torch.optim.LBFGS([dummy_data], lr=lr)
                 # predict the ground-truth label
                 label_pred = torch.argmin(torch.sum(original_dy_dx[-2], dim=-1), dim=-1).detach().reshape((1,)).requires_grad_(False)
@@ -232,6 +232,12 @@ def main():
                         for gx, gy in zip(dummy_dy_dx, original_dy_dx):
                          grad_diff += ((gx - gy) ** 2).sum()
                     elif method == 'iDLG':
+                        dummy_loss = criterion(pred, label_pred)
+                        dummy_dy_dx = torch.autograd.grad(dummy_loss, net.parameters(), create_graph=True)
+                        grad_diff = 0
+                        for gx, gy in zip(dummy_dy_dx, original_dy_dx):
+                         grad_diff += ((gx - gy) ** 2).sum()
+                    elif method == 'iDLG_cos':
                         # Use cosine similarity
                         dummy_loss = criterion(pred, label_pred)
                         dummy_dy_dx = torch.autograd.grad(dummy_loss, net.parameters(), create_graph=True)
@@ -277,6 +283,9 @@ def main():
                         elif method == 'iDLG':
                             plt.savefig('%s/iDLG_on_%s_%05d.png' % (save_path, imidx_list, imidx_list[imidx]))
                             plt.close()
+                        elif method == 'iDLG_cos':
+                            plt.savefig('%s/iDLG_cos_on_%s_%05d.png' % (save_path, imidx_list, imidx_list[imidx]))
+                            plt.close()
 
                     if current_loss < 0.000001: # converge
                         break
@@ -289,11 +298,15 @@ def main():
                 loss_iDLG = losses
                 label_iDLG = label_pred.item()
                 mse_iDLG = mses
+            elif method == 'iDLG_cos':
+                loss_iDLG_cos = losses
+                label_iDLG_cos = label_pred.item()
+                mse_iDLG_cos = mses
 
         print('imidx_list:', imidx_list)
-        print('loss_DLG:', loss_DLG[-1], 'loss_iDLG:', loss_iDLG[-1])
-        print('mse_DLG:', mse_DLG[-1], 'mse_iDLG:', mse_iDLG[-1])
-        print('gt_label:', gt_label.detach().cpu().data.numpy(), 'lab_DLG:', label_DLG, 'lab_iDLG:', label_iDLG)
+        print('loss_DLG:', loss_DLG[-1], 'loss_iDLG:', loss_iDLG[-1], 'loss_iDLG_cos:', loss_iDLG_cos[-1])
+        print('mse_DLG:', mse_DLG[-1], 'mse_iDLG:', mse_iDLG[-1], 'mse_iDLG_cos:', mse_iDLG_cos[-1])
+        print('gt_label:', gt_label.detach().cpu().data.numpy(), 'lab_DLG:', label_DLG, 'lab_iDLG:', label_iDLG, 'lab_iDLG_cos:', label_iDLG_cos)
         print('----------------------\n\n')
 
 if __name__ == '__main__':
