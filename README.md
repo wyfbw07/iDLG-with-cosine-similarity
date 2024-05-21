@@ -11,3 +11,15 @@ All three methods were configured identically using the LeNet model, the CIFAR-1
 ## How to use 
 
 Set up your Python environment and install the required packages. Then run the script.
+
+## Authors 
+
+Yixuan Zeng, Yifan Wang
+
+Department of Electrical, Computer, and Systems Engineering 
+
+Rensselaer Polytechnic Institute
+
+Troy, NY 12180
+
+zengy5@rpi.edu, wangy77@rpi.edu
